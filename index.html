@@ -87,7 +87,7 @@
         #toggle-labels-btn { background-color: #28a745; color: white; border-color: #28a745; }
         #toggle-labels-btn:hover { background-color: #218838; }
         
-        #compare-year-toggle, #yaxis-zero-toggle {
+        #compare-year-toggle {
             background-color: #f8f9fa;
             padding: 5px 10px;
             border-radius: 5px;
@@ -116,11 +116,6 @@
                     <input type="checkbox" id="compare-year-checkbox">
                     <label for="compare-year-checkbox">Comparer avec N-1</label>
                  </div>
-                 <!-- NOUVEL ÉLÉMENT ICI -->
-                 <div id="yaxis-zero-toggle" class="controls-group">
-                    <input type="checkbox" id="yaxis-zero-checkbox">
-                    <label for="yaxis-zero-checkbox">Forcer l'axe Y à zéro</label>
-                </div>
             </div>
             <div class="controls-group">
                 <div class="nav-buttons" style="display: flex; gap: 5px;">
@@ -139,7 +134,7 @@
         <div id="chart"></div>
 
         <div class="note">
-            <strong>Astuce :</strong> Cochez "Forcer l'axe Y à zéro" pour voir les données par rapport à une base nulle, ou décochez pour mieux voir les variations.
+            <strong>Astuce :</strong> En mode "Cumulé", cochez "Comparer avec N-1" pour voir si vous êtes en avance ou en retard sur l'année précédente.
         </div>
     </div>
 
@@ -181,12 +176,10 @@
         let chartState = {
             level: 'year', context: {}, type: 'bar', mode: 'normal',
             comparisonIndicateur: indicateurs[0], showDataLabels: false,
-            cumulativeCompare: false,
-            forceYAxisToZero: false // NOUVEL ÉTAT
+            cumulativeCompare: false
         };
         const drilldownHistory = [];
         
-        // Les fonctions aggregateData, getComparisonData, calculateCumulative, renderBreadcrumbs restent identiques...
         const aggregateData = (level, context = {}) => {
             let filtered = flatData; let categories = []; let seriesData = {};
             indicateurs.forEach(r => { seriesData[r] = []; });
@@ -252,6 +245,7 @@
             const series = Object.keys(seriesData).map(indicateur => ({ name: indicateur, data: seriesData[indicateur] }));
             return { series, categories };
         };
+        
         const getComparisonData = (level, indicateur) => {
             const dataForIndicateur = flatData.filter(d => d.indicateur === indicateur);
             let categories = [];
@@ -293,6 +287,7 @@
 
             return { series, categories };
         };
+        
         const calculateCumulative = (series) => {
             return series.map(s => {
                 if (s.name.toLowerCase().includes('panier moyen')) return s; // Ne pas cumuler le panier moyen
@@ -301,6 +296,7 @@
                 return { ...s, data: cumulativeData };
             });
         };
+
         const renderBreadcrumbs = () => {
             const nav = document.getElementById('breadcrumb-nav');
             nav.innerHTML = '';
@@ -345,13 +341,10 @@
         };
 
         const renderChart = () => {
-            const { level, context, type, mode, comparisonIndicateur, showDataLabels, cumulativeCompare, forceYAxisToZero } = chartState;
+            const { level, context, type, mode, comparisonIndicateur, showDataLabels, cumulativeCompare } = chartState;
             let data, title, dynamicColors, dynamicDashArray, yAxisConfig;
             
             let allowDrilldown = level !== 'month';
-
-            // Gérer la visibilité du toggle de l'axe Y
-            document.getElementById('yaxis-zero-toggle').style.display = (mode === 'normal' || mode === 'comparison') ? 'flex' : 'none';
 
             switch (mode) {
                 case 'comparison':
@@ -360,14 +353,9 @@
                     title = `Comparaison ${levelName} - ${comparisonIndicateur}`;
                     dynamicColors = defaultColors;
                     dynamicDashArray = [0];
-                    yAxisConfig = [{ 
-                        title: { text: `Valeur (${getUnit(comparisonIndicateur)})` },
-                        // MODIFICATION : Appliquer min: 0 si nécessaire
-                        min: (forceYAxisToZero && comparisonIndicateur.includes('VENTES TTC')) ? 0 : undefined
-                    }];
+                    yAxisConfig = [{ title: { text: `Valeur (${getUnit(comparisonIndicateur)})` } }];
                     break;
                 case 'cumulative':
-                    // ... (logique cumulative inchangée)
                     const currentYearData = aggregateData(level, context);
                     if (cumulativeCompare && context.year && context.year > years[0]) {
                         const prevContext = { ...context, year: context.year - 1 };
@@ -392,7 +380,6 @@
                             dynamicColors.push(baseColors[baseIndicateur] || '#808080');
                             dynamicDashArray.push(s.name.includes(String(prevContext.year)) ? 5 : 0);
                         });
-                        yAxisConfig = [{ title: { text: 'Valeur Cumulée' }, min: forceYAxisToZero ? 0 : undefined }];
 
                     } else {
                         data = {
@@ -401,15 +388,18 @@
                         };
                         const yearLabel = context.year || 'Années';
                         title = `Vue Cumulée - ${level === 'year' ? 'Années' : yearLabel}`;
+                    }
+                    if (!cumulativeCompare) {
                         yAxisConfig = indicateurs.map((indic, index) => ({
                             seriesName: indic,
                             opposite: index === 1,
                             axisTicks: { show: true },
                             axisBorder: { show: true, color: baseColors[indic] },
                             labels: { style: { colors: baseColors[indic] } },
-                            title: { text: indic, style: { color: baseColors[indic] } },
-                            min: (forceYAxisToZero && indic.includes('VENTES TTC')) ? 0 : undefined
+                            title: { text: indic, style: { color: baseColors[indic] } }
                         }));
+                    } else {
+                        yAxisConfig = [{ title: { text: 'Valeur Cumulée' } }];
                     }
                     break;
                 default: // 'normal'
@@ -421,15 +411,13 @@
                     }[level];
                     dynamicColors = Object.values(baseColors);
                     dynamicDashArray = [0];
-                    // MODIFICATION : Configuration multi-axes avec min: 0 conditionnel
                     yAxisConfig = indicateurs.map((indic, index) => ({
                         seriesName: indic,
                         opposite: index === 1,
                         axisTicks: { show: true },
                         axisBorder: { show: true, color: baseColors[indic] },
                         labels: { style: { colors: baseColors[indic] }, formatter: (val) => val.toLocaleString('fr-FR', {maximumFractionDigits: 0}) },
-                        title: { text: indic, style: { color: baseColors[indic] } },
-                        min: (forceYAxisToZero && indic.includes('VENTES TTC')) ? 0 : undefined
+                        title: { text: indic, style: { color: baseColors[indic] } }
                     }));
                     break;
             }
@@ -459,7 +447,6 @@
             renderBreadcrumbs();
         };
 
-        // Les fonctions updateUI, handleDataPointSelection, handleDrillUp, handleDrillDown restent identiques...
         const updateUI = () => {
             const { mode, type, showDataLabels, level, context } = chartState;
             document.querySelectorAll('#mode-toggle button').forEach(btn => btn.classList.remove('active'));
@@ -488,6 +475,7 @@
             
             drillDownBtn.disabled = atBottom || stuckAtTop;
         };
+
         const handleDataPointSelection = (e, chartContext, config) => {
             const { dataPointIndex } = config;
             const currentLevelIndex = hierarchy.indexOf(chartState.level);
@@ -505,6 +493,7 @@
             chartState.context = newContext;
             renderChart();
         };
+
         const handleDrillUp = () => {
             const currentIndex = hierarchy.indexOf(chartState.level);
             if (currentIndex <= 0) return;
@@ -520,6 +509,7 @@
             chartState.context = newContext;
             renderChart();
         };
+
         const handleDrillDown = () => {
             const currentIndex = hierarchy.indexOf(chartState.level);
             if (currentIndex >= hierarchy.length - 1) return;
@@ -530,22 +520,28 @@
             renderChart();
         };
 
-        // --- GESTION DES ÉVÉNEMENTS ---
         document.getElementById('drill-up-btn').addEventListener('click', handleDrillUp);
         document.getElementById('drill-down-btn').addEventListener('click', handleDrillDown);
+
         document.getElementById('back-button').addEventListener('click', () => {
             if (drilldownHistory.length > 0) { chartState = drilldownHistory.pop(); renderChart(); }
         });
+
         ['normal', 'comparison', 'cumulative'].forEach(mode => {
             document.getElementById(`mode-${mode}-btn`).addEventListener('click', () => {
-                if (chartState.mode !== mode) { chartState.mode = mode; renderChart(); }
+                if (chartState.mode !== mode) {
+                    chartState.mode = mode;
+                    renderChart();
+                }
             });
         });
+
         ['bar', 'line'].forEach(type => {
             document.getElementById(`view-${type}-btn`).addEventListener('click', () => {
                 if (chartState.type !== type) { chartState.type = type; renderChart(); }
             });
         });
+        
         const indicateurSelector = document.getElementById('indicateur-selector');
         indicateurs.forEach(r => {
             const option = document.createElement('option');
@@ -555,17 +551,14 @@
         indicateurSelector.addEventListener('change', (e) => {
             chartState.comparisonIndicateur = e.target.value; renderChart();
         });
+
         document.getElementById('toggle-labels-btn').addEventListener('click', () => {
             chartState.showDataLabels = !chartState.showDataLabels;
             renderChart();
         });
+
         document.getElementById('compare-year-checkbox').addEventListener('change', (e) => {
             chartState.cumulativeCompare = e.target.checked;
-            renderChart();
-        });
-        // NOUVEL ÉVÉNEMENT
-        document.getElementById('yaxis-zero-checkbox').addEventListener('change', (e) => {
-            chartState.forceYAxisToZero = e.target.checked;
             renderChart();
         });
 
