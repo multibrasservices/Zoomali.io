@@ -389,18 +389,16 @@
                         const yearLabel = context.year || 'Années';
                         title = `Vue Cumulée - ${level === 'year' ? 'Années' : yearLabel}`;
                     }
-                    // For cumulative, always use multi-axis if not comparing years
                     if (!cumulativeCompare) {
                         yAxisConfig = indicateurs.map((indic, index) => ({
                             seriesName: indic,
-                            opposite: index === 1, // Mettre le 2ème axe à droite
+                            opposite: index === 1,
                             axisTicks: { show: true },
                             axisBorder: { show: true, color: baseColors[indic] },
                             labels: { style: { colors: baseColors[indic] } },
                             title: { text: indic, style: { color: baseColors[indic] } }
                         }));
                     } else {
-                        // Simplified axis for comparison
                         yAxisConfig = [{ title: { text: 'Valeur Cumulée' } }];
                     }
                     break;
@@ -413,10 +411,9 @@
                     }[level];
                     dynamicColors = Object.values(baseColors);
                     dynamicDashArray = [0];
-                    // --- NOUVEAU : Configuration multi-axes ---
                     yAxisConfig = indicateurs.map((indic, index) => ({
                         seriesName: indic,
-                        opposite: index === 1, // Mettre le 2ème axe (Panier Moyen) à droite
+                        opposite: index === 1,
                         axisTicks: { show: true },
                         axisBorder: { show: true, color: baseColors[indic] },
                         labels: { style: { colors: baseColors[indic] }, formatter: (val) => val.toLocaleString('fr-FR', {maximumFractionDigits: 0}) },
@@ -572,7 +569,7 @@
             series: [],
             plotOptions: { bar: { columnWidth: '70%', dataLabels: { position: 'top' } } },
             dataLabels: { enabled: false },
-            stroke: { show: true, width: [0, 3, 3], curve: 'smooth' }, // Barres pour le 1er, courbes pour les autres
+            stroke: { show: true, width: [0, 3, 3], curve: 'smooth' },
             fill: { opacity: [0.85, 0.95, 0.95], },
             tooltip: { 
                 y: { formatter: (val, { series, seriesIndex, w }) => `${val.toLocaleString('fr-FR', {maximumFractionDigits: 2})} ${getUnit(w.globals.seriesNames[seriesIndex])}` },
