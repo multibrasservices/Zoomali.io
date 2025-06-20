@@ -151,6 +151,13 @@
         const monthMap = { "janv": 0, "févr": 1, "mars": 2, "avr": 3, "mai": 4, "juin": 5, "juil": 6, "août": 7, "sept": 8, "oct": 9, "nov": 10, "déc": 11 };
         const monthNames = Object.keys(monthMap).map(m => m.charAt(0).toUpperCase() + m.slice(1));
         const hierarchy = ['year', 'semester', 'quadrimester', 'trimester', 'month'];
+        
+        const baseColors = {
+            'Eau (m3)': '#008FFB',
+            'Electricité (Kwh)': '#00E396',
+            'Gaz (Mwh)': '#FEB019'
+        };
+        const defaultColors = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0', '#546E7A'];
 
         let flatData = [];
         rawData.forEach(row => {
@@ -321,9 +328,7 @@
 
         const renderChart = () => {
             const { level, context, type, mode, comparisonRubrique, showDataLabels, cumulativeCompare } = chartState;
-            let data, title;
-            let finalType = type; 
-            if (mode !== 'normal') { finalType = 'line'; } // Forcer la vue ligne pour les modes spéciaux
+            let data, title, dynamicColors, dynamicDashArray;
             let allowDrilldown = mode === 'normal' && level !== 'month';
 
             switch (mode) {
@@ -331,6 +336,8 @@
                     data = getComparisonData(level, comparisonRubrique);
                     const levelName = { year: 'Mensuelle', semester: 'Semestrielle', quadrimester: 'Quadrimestrielle', trimester: 'Trimestrielle', month: 'Mensuelle' }[level];
                     title = `Comparaison ${levelName} - ${comparisonRubrique}`;
+                    dynamicColors = defaultColors;
+                    dynamicDashArray = [0];
                     break;
                 case 'cumulative':
                     const currentYearData = aggregateData(level, context);
@@ -346,15 +353,26 @@
                         
                         data = {
                             series: [...cumulativeCurrent, ...cumulativePrev],
-                            categories: currentYearData.categories.map(c => c.split(' ')[0] + ' ' + c.split(' ')[1]) // Generic labels
+                            categories: currentYearData.categories.map(c => c.split(' ')[0] + ' ' + c.split(' ')[1])
                         };
                         title = `Cumulatif Comparé - ${context.year} vs ${prevContext.year}`;
+
+                        dynamicColors = [];
+                        dynamicDashArray = [];
+                        data.series.forEach(s => {
+                            const baseRubrique = rubriques.find(r => s.name.includes(r));
+                            dynamicColors.push(baseColors[baseRubrique] || '#808080');
+                            dynamicDashArray.push(s.name.includes(String(prevContext.year)) ? 5 : 0);
+                        });
+
                     } else {
                         data = {
                             series: calculateCumulative(currentYearData.series),
                             categories: currentYearData.categories
                         };
                         title = `Vue Cumulée - ${level === 'year' ? 'Années' : context.year}`;
+                        dynamicColors = Object.values(baseColors);
+                        dynamicDashArray = [0];
                     }
                     break;
                 default: // 'normal'
@@ -364,25 +382,29 @@
                         'quadrimester': `Détail par Quadrimestre - ${context.year}`, 'trimester': `Détail par Trimestre - ${context.year}`,
                         'month': `Détail Mensuel - ${context.year}`
                     }[level];
+                    dynamicColors = Object.values(baseColors);
+                    dynamicDashArray = [0];
                     break;
             }
 
             chart.updateOptions({
-                chart: { type: finalType, events: { dataPointSelection: allowDrilldown ? handleDataPointSelection : undefined } },
+                chart: { type: type, events: { dataPointSelection: allowDrilldown ? handleDataPointSelection : undefined } }, // MODIFICATION : Utilise 'type' directement
                 series: data.series,
                 xaxis: { categories: data.categories },
                 title: { text: title },
-                plotOptions: { bar: { columnWidth: '80%', } },
+                colors: dynamicColors,
+                plotOptions: { bar: { columnWidth: '70%', grouped: true } }, // MODIFICATION : Optimisé pour les barres groupées
                 stroke: {
-                    curve: 'smooth', width: finalType === 'line' ? 3 : 2,
-                    colors: finalType === 'bar' ? ['transparent'] : undefined
+                    curve: 'smooth', width: type === 'line' ? 3 : 2,
+                    colors: type === 'bar' ? ['transparent'] : undefined,
+                    dashArray: dynamicDashArray
                 },
-                markers: { size: finalType === 'line' ? 5 : 0 },
+                markers: { size: type === 'line' ? 5 : 0 },
                 dataLabels: {
                     enabled: showDataLabels,
                     formatter: (val) => (typeof val !== 'number') ? val : val.toLocaleString('fr-FR', { maximumFractionDigits: val > 100 ? 0 : 2 }),
-                    style: { fontSize: '12px', colors: finalType === 'bar' ? ["#fff"] : ["#333"] },
-                    offsetY: finalType === 'line' ? -10 : 0,
+                    style: { fontSize: '12px', colors: type === 'bar' ? ["#fff"] : ["#333"] },
+                    offsetY: type === 'line' ? -10 : 0,
                 },
             });
             updateUI();
@@ -394,12 +416,11 @@
             document.querySelectorAll('#mode-toggle button').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`mode-${mode}-btn`).classList.add('active');
             
+            // MODIFICATION : Le sélecteur de vue est maintenant toujours visible
             const viewToggle = document.getElementById('view-toggle');
-            viewToggle.style.display = (mode === 'normal') ? 'flex' : 'none';
-            if (mode === 'normal') {
-                document.querySelectorAll('#view-toggle button').forEach(btn => btn.classList.remove('active'));
-                document.getElementById(`view-${type}-btn`).classList.add('active');
-            }
+            viewToggle.style.display = 'flex';
+            document.querySelectorAll('#view-toggle button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`view-${type}-btn`).classList.add('active');
 
             document.getElementById('rubrique-selector').style.display = mode === 'comparison' ? 'block' : 'none';
             
@@ -415,7 +436,6 @@
 
             drillUpBtn.disabled = (currentIndex <= 0 || mode !== 'normal');
             
-            // MODIFICATION : La logique pour désactiver le bouton "+" est maintenant plus précise.
             const canDrillDown = mode === 'normal' && currentIndex < hierarchy.length - 1;
             const hasContextToDrillDown = !(level === 'year' && !context.year);
             drillDownBtn.disabled = !(canDrillDown && hasContextToDrillDown);
@@ -457,8 +477,6 @@
         const handleDrillDown = () => {
             const currentIndex = hierarchy.indexOf(chartState.level);
             if (currentIndex >= hierarchy.length - 1) return;
-            
-            // SUPPRESSION : Le test de l'alerte est maintenant inutile car le bouton est désactivé.
             
             const nextLevel = hierarchy[currentIndex + 1];
             drilldownHistory.push({ ...chartState });
@@ -512,7 +530,7 @@
         const chart = new ApexCharts(document.querySelector("#chart"), {
             chart: { type: 'bar', height: 500, toolbar: { show: true, tools: { download: true, selection: false, zoom: false, zoomin: false, zoomout: false, pan: false, reset: false } } },
             series: [],
-            plotOptions: { bar: { columnWidth: '80%', distributed: false } },
+            plotOptions: { bar: { columnWidth: '70%', grouped: true } },
             dataLabels: { enabled: false },
             stroke: { show: true, width: 2, colors: ['transparent'] },
             yaxis: { title: { text: 'Consommation' } },
@@ -520,7 +538,7 @@
             tooltip: { y: { formatter: (val, { series, seriesIndex }) => `${val.toLocaleString('fr-FR', {maximumFractionDigits: 2})} ${getUnit(series[seriesIndex].name)}` } },
             title: { text: ' ', align: 'center', style: { fontSize: '20px', color: '#263238' } },
             noData: { text: 'Chargement...' },
-            colors: ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0', '#546E7A'],
+            colors: defaultColors,
         });
         chart.render();
         renderChart();
