@@ -286,7 +286,7 @@
         const renderBreadcrumbs = () => { /* ... (Identique) ... */ 
             const nav = document.getElementById('breadcrumb-nav');
             nav.innerHTML = '';
-            if (chartState.level === 'year') return;
+            if (chartState.level === 'year' || chartState.mode !== 'normal') return;
 
             const createLink = (text, level, context) => {
                 const link = document.createElement('a');
@@ -329,7 +329,8 @@
         const renderChart = () => {
             const { level, context, type, mode, comparisonRubrique, showDataLabels, cumulativeCompare } = chartState;
             let data, title, dynamicColors, dynamicDashArray;
-            let allowDrilldown = mode === 'normal' && level !== 'month';
+            
+            let allowDrilldown = level !== 'month';
 
             switch (mode) {
                 case 'comparison':
@@ -370,9 +371,9 @@
                             series: calculateCumulative(currentYearData.series),
                             categories: currentYearData.categories
                         };
-                        title = `Vue Cumulée - ${level === 'year' ? 'Années' : context.year}`;
-                        dynamicColors = Object.values(baseColors);
-                        dynamicDashArray = [0];
+                        // MODIFICATION : Logique de titre robuste pour éviter "undefined"
+                        const yearLabel = context.year || 'Années';
+                        title = `Vue Cumulée - ${level === 'year' ? 'Années' : yearLabel}`;
                     }
                     break;
                 default: // 'normal'
@@ -388,12 +389,12 @@
             }
 
             chart.updateOptions({
-                chart: { type: type, events: { dataPointSelection: allowDrilldown ? handleDataPointSelection : undefined } }, // MODIFICATION : Utilise 'type' directement
+                chart: { type: type, events: { dataPointSelection: allowDrilldown ? handleDataPointSelection : undefined } },
                 series: data.series,
                 xaxis: { categories: data.categories },
                 title: { text: title },
                 colors: dynamicColors,
-                plotOptions: { bar: { columnWidth: '70%', grouped: true } }, // MODIFICATION : Optimisé pour les barres groupées
+                plotOptions: { bar: { columnWidth: '70%', grouped: true } },
                 stroke: {
                     curve: 'smooth', width: type === 'line' ? 3 : 2,
                     colors: type === 'bar' ? ['transparent'] : undefined,
@@ -416,9 +417,6 @@
             document.querySelectorAll('#mode-toggle button').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`mode-${mode}-btn`).classList.add('active');
             
-            // MODIFICATION : Le sélecteur de vue est maintenant toujours visible
-            const viewToggle = document.getElementById('view-toggle');
-            viewToggle.style.display = 'flex';
             document.querySelectorAll('#view-toggle button').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`view-${type}-btn`).classList.add('active');
 
@@ -434,11 +432,14 @@
             const drillDownBtn = document.getElementById('drill-down-btn');
             const currentIndex = hierarchy.indexOf(level);
 
-            drillUpBtn.disabled = (currentIndex <= 0 || mode !== 'normal');
+            drillUpBtn.disabled = (currentIndex <= 0);
             
-            const canDrillDown = mode === 'normal' && currentIndex < hierarchy.length - 1;
-            const hasContextToDrillDown = !(level === 'year' && !context.year);
-            drillDownBtn.disabled = !(canDrillDown && hasContextToDrillDown);
+            const atBottom = currentIndex >= hierarchy.length - 1;
+            // MODIFICATION : La condition pour bloquer le bouton "+" est maintenant plus intelligente
+            const needsContext = (mode === 'normal' || mode === 'cumulative');
+            const stuckAtTop = (level === 'year' && !context.year && needsContext);
+            
+            drillDownBtn.disabled = atBottom || stuckAtTop;
         };
 
         const handleDataPointSelection = (e, chartContext, config) => {
@@ -448,7 +449,9 @@
 
             const nextLevel = hierarchy[currentLevelIndex + 1];
             let newContext = { ...chartState.context };
-            if(chartState.level === 'year') {
+            
+            // MODIFICATION : On définit le contexte de l'année même en mode Cumulé
+            if(chartState.level === 'year' && (chartState.mode === 'normal' || chartState.mode === 'cumulative')) {
                 newContext.year = parseInt(chart.w.globals.labels[dataPointIndex]);
             }
             
