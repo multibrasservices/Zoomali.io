@@ -168,7 +168,7 @@
         let chartState = {
             level: 'year', context: {}, type: 'bar', mode: 'normal',
             comparisonRubrique: rubriques[1], showDataLabels: false,
-            cumulativeCompare: false // NOUVEL ÉTAT
+            cumulativeCompare: false
         };
         const drilldownHistory = [];
         
@@ -322,7 +322,8 @@
         const renderChart = () => {
             const { level, context, type, mode, comparisonRubrique, showDataLabels, cumulativeCompare } = chartState;
             let data, title;
-            const finalType = type; 
+            let finalType = type; 
+            if (mode !== 'normal') { finalType = 'line'; } // Forcer la vue ligne pour les modes spéciaux
             let allowDrilldown = mode === 'normal' && level !== 'month';
 
             switch (mode) {
@@ -393,12 +394,15 @@
             document.querySelectorAll('#mode-toggle button').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`mode-${mode}-btn`).classList.add('active');
             
-            document.querySelectorAll('#view-toggle button').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`view-${type}-btn`).classList.add('active');
+            const viewToggle = document.getElementById('view-toggle');
+            viewToggle.style.display = (mode === 'normal') ? 'flex' : 'none';
+            if (mode === 'normal') {
+                document.querySelectorAll('#view-toggle button').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(`view-${type}-btn`).classList.add('active');
+            }
 
             document.getElementById('rubrique-selector').style.display = mode === 'comparison' ? 'block' : 'none';
             
-            // NOUVEAU : Gérer la visibilité du toggle de comparaison cumulée
             const compareToggle = document.getElementById('compare-year-toggle');
             compareToggle.style.display = (mode === 'cumulative' && level !== 'year') ? 'block' : 'none';
             
@@ -409,8 +413,12 @@
             const drillDownBtn = document.getElementById('drill-down-btn');
             const currentIndex = hierarchy.indexOf(level);
 
-            drillUpBtn.disabled = (currentIndex <= 0);
-            drillDownBtn.disabled = (currentIndex >= hierarchy.length - 1 || (level === 'year' && mode !== 'normal'));
+            drillUpBtn.disabled = (currentIndex <= 0 || mode !== 'normal');
+            
+            // MODIFICATION : La logique pour désactiver le bouton "+" est maintenant plus précise.
+            const canDrillDown = mode === 'normal' && currentIndex < hierarchy.length - 1;
+            const hasContextToDrillDown = !(level === 'year' && !context.year);
+            drillDownBtn.disabled = !(canDrillDown && hasContextToDrillDown);
         };
 
         const handleDataPointSelection = (e, chartContext, config) => {
@@ -449,11 +457,8 @@
         const handleDrillDown = () => {
             const currentIndex = hierarchy.indexOf(chartState.level);
             if (currentIndex >= hierarchy.length - 1) return;
-            if (chartState.level === 'year' && !chartState.context.year) {
-                // Si on est à la vue globale, on ne peut pas descendre sans choisir une année
-                alert("Veuillez d'abord cliquer sur une année pour pouvoir descendre dans la granularité.");
-                return;
-            }
+            
+            // SUPPRESSION : Le test de l'alerte est maintenant inutile car le bouton est désactivé.
             
             const nextLevel = hierarchy[currentIndex + 1];
             drilldownHistory.push({ ...chartState });
@@ -498,7 +503,6 @@
             renderChart();
         });
 
-        // NOUVEAU : Listener pour la checkbox de comparaison cumulée
         document.getElementById('compare-year-checkbox').addEventListener('change', (e) => {
             chartState.cumulativeCompare = e.target.checked;
             renderChart();
