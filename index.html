@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZoomAli - Rapport d'Analyse de Consommation</title>
+    <title>ZoomAli - Analyse des Ventes</title>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <style>
         body {
@@ -81,7 +81,7 @@
             border-color: #dee2e6;
         }
 
-        #rubrique-selector { padding: 7px; border-radius: 5px; border: 1px solid #ccc; font-size: 14px; }
+        #indicateur-selector { padding: 7px; border-radius: 5px; border: 1px solid #ccc; font-size: 14px; }
         #back-button { background-color: #6c757d; color: white; border-color: #6c757d; }
         #back-button:hover { background-color: #5a6268; }
         #toggle-labels-btn { background-color: #28a745; color: white; border-color: #28a745; }
@@ -100,7 +100,7 @@
 <body>
 
     <div class="container">
-        <h1>ZoomAli - Rapport d'Analyse de Consommation</h1>
+        <h1>ZoomAli - Analyse des Ventes</h1>
         <p class="subtitle">Naviguez avec le fil d'Ariane, les boutons +/- ou en cliquant sur le graphique.</p>
         <div id="breadcrumb-nav"></div>
         
@@ -111,7 +111,7 @@
                     <button id="mode-comparison-btn">Comparaison</button>
                     <button id="mode-cumulative-btn">Cumulé</button>
                 </div>
-                 <select id="rubrique-selector" style="display: none;"></select>
+                 <select id="indicateur-selector" style="display: none;"></select>
                  <div id="compare-year-toggle" style="display: none;">
                     <input type="checkbox" id="compare-year-checkbox">
                     <label for="compare-year-checkbox">Comparer avec N-1</label>
@@ -142,86 +142,92 @@
     document.addEventListener("DOMContentLoaded", function() {
         // --- 1. DONNÉES ET CONFIGURATION ---
         const rawData = [
-            { "rubrique": "Eau (m3)", "janv-22": 0, "févr-22": 0, "mars-22": 0, "avr-22": 0, "mai-22": 0, "juin-22": 0, "juil-22": 0, "août-22": 0, "sept-22": 0, "oct-22": 0, "nov-22": 0, "déc-22": 10, "janv-23": 0, "févr-23": 0, "mars-23": 0, "avr-23": 0, "mai-23": 0, "juin-23": 0, "juil-23": 0, "août-23": 0, "sept-23": 0, "oct-23": 0, "nov-23": 0, "déc-23": 12, "janv-24": 0, "févr-24": 0, "mars-24": 0, "avr-24": 0, "mai-24": 0, "juin-24": 0, "juil-24": 0, "août-24": 0, "sept-24": 0, "oct-24": 0, "nov-24": 0, "déc-24": 85.53 },
-            { "rubrique": "Electricité (Kwh)", "janv-22": 4252, "févr-22": 4509, "mars-22": 3668, "avr-22": 3931, "mai-22": 3749, "juin-22": 4013, "juil-22": 3750, "août-22": 3890, "sept-22": 3928, "oct-22": 3670, "nov-22": 3844, "déc-22": 4047, "janv-23": 3681, "févr-23": 3899, "mars-23": 3311, "avr-23": 3548, "mai-23": 3269, "juin-23": 3432, "juil-23": 3187, "août-23": 3355, "sept-23": 3419, "oct-23": 3305, "nov-23": 3632, "déc-23": 3722, "janv-24": 3722, "févr-24": 3597.5, "mars-24": 3597.5, "avr-24": 3347.5, "mai-24": 3319.5, "juin-24": 3346, "juil-24": 3346, "août-24": 3694.5, "sept-24": 3694.5, "oct-24": 3734, "nov-24": 3734, "déc-24": 3202.5 },
-            { "rubrique": "Gaz (Mwh)", "janv-22": 20.99, "févr-22": 19.95, "mars-22": 8.44, "avr-22": 5.49, "mai-22": 0, "juin-22": 0.01, "juil-22": 0, "août-22": 0, "sept-22": 0, "oct-22": 0, "nov-22": 0.47, "déc-22": 21.71, "janv-23": 20.85, "févr-23": 21.01, "mars-23": 6.87, "avr-23": 2.21, "mai-23": 0, "juin-23": 0.01, "juil-23": 0, "août-23": 0, "sept-23": 0.11, "oct-23": 0, "nov-23": 8.49, "déc-23": 14.97, "janv-24": 17.68, "févr-24": 12.29, "mars-24": 7.08, "avr-24": 1.04, "mai-24": 0.53, "juin-24": 0, "juil-24": 0, "août-24": 0, "sept-24": 0, "oct-24": 1.22, "nov-24": 8.2, "déc-24": 17.55 }
+            { "indicateur": "VENTES TTC (€)", "janv-22": 175918.21, "févr-22": 194484.64, "mars-22": 245011.85, "avr-22": 294473.25, "mai-22": 304670.83, "juin-22": 272295.17, "juil-22": 259684.94, "août-22": 257027.31, "sept-22": 234606.13, "oct-22": 265566.79, "nov-22": 245116.26, "déc-22": 228758.1, "janv-23": 213253.53, "févr-23": 230717.99, "mars-23": 239709.41, "avr-23": 307848.06, "mai-23": 312744.22, "juin-23": 270016.43, "juil-23": 281451.31, "août-23": 265691.18, "sept-23": 230422.77, "oct-23": 234916.42, "nov-23": 229605.05, "déc-23": 207658.64, "janv-24": 201698.41, "févr-24": 195718.58, "mars-24": 302788.76, "avr-24": 278797.25, "mai-24": 268319.89, "juin-24": 265060.03, "juil-24": 159088.28, "août-24": 250405.78, "sept-24": 201170.14, "oct-24": 213683.07, "nov-24": 216314.5, "déc-24": 185432.9 },
+            { "indicateur": "Panier Moyen (€)", "janv-22": 29.95, "févr-22": 32.64, "mars-22": 33.91, "avr-22": 39.08, "mai-22": 37.38, "juin-22": 41.69, "juil-22": 39.2, "août-22": 38.43, "sept-22": 37.72, "oct-22": 41.8, "nov-22": 41.27, "déc-22": 40.44, "janv-23": 40.74, "févr-23": 41.68, "mars-23": 36.49, "avr-23": 42.77, "mai-23": 43.24, "juin-23": 40.36, "juil-23": 42.08, "août-23": 40.06, "sept-23": 41.1, "oct-23": 41.49, "nov-23": 40.49, "déc-23": 39.34, "janv-24": 38.38, "févr-24": 36.41, "mars-24": 46.26, "avr-24": 39.13, "mai-24": 41.37, "juin-24": 42.83, "juil-24": 23.52, "août-24": 39.29, "sept-24": 41.02, "oct-24": 40.97, "nov-24": 42.49, "déc-24": 39.76 },
+            { "indicateur": "Clients (nombre)", "janv-22": 5874, "févr-22": 5959, "mars-22": 7225, "avr-22": 7535, "mai-22": 8151, "juin-22": 6531, "juil-22": 6625, "août-22": 6688, "sept-22": 6219, "oct-22": 6354, "nov-22": 5939, "déc-22": 5657, "janv-23": 5234, "févr-23": 5535, "mars-23": 6570, "avr-23": 7198, "mai-23": 7233, "juin-23": 6690, "juil-23": 6688, "août-23": 6632, "sept-23": 5606, "oct-23": 5662, "nov-23": 5671, "déc-23": 5278, "janv-24": 5255, "févr-24": 5376, "mars-24": 6546, "avr-24": 7125, "mai-24": 6486, "juin-24": 6188, "juil-24": 6764, "août-24": 6373, "sept-24": 4904, "oct-24": 5216, "nov-24": 5091, "déc-24": 4664 }
         ];
-        const rubriques = rawData.map(r => r.rubrique);
+        
+        const indicateurs = rawData.map(r => r.indicateur);
         const years = [2022, 2023, 2024];
         const monthMap = { "janv": 0, "févr": 1, "mars": 2, "avr": 3, "mai": 4, "juin": 5, "juil": 6, "août": 7, "sept": 8, "oct": 9, "nov": 10, "déc": 11 };
         const monthNames = Object.keys(monthMap).map(m => m.charAt(0).toUpperCase() + m.slice(1));
         const hierarchy = ['year', 'semester', 'quadrimester', 'trimester', 'month'];
         
         const baseColors = {
-            'Eau (m3)': '#008FFB',
-            'Electricité (Kwh)': '#00E396',
-            'Gaz (Mwh)': '#FEB019'
+            'VENTES TTC (€)': '#008FFB',
+            'Panier Moyen (€)': '#00E396',
+            'Clients (nombre)': '#FEB019'
         };
         const defaultColors = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0', '#546E7A'];
 
         let flatData = [];
         rawData.forEach(row => {
-            const rubrique = row.rubrique;
+            const indicateur = row.indicateur;
             for (const key in row) {
-                if (key === 'rubrique') continue;
+                if (key === 'indicateur') continue;
                 const [monthStr, yearStr] = key.split('-');
                 const year = 2000 + parseInt(yearStr, 10);
                 const month = monthMap[monthStr];
                 const value = typeof row[key] === 'string' ? parseFloat(row[key].replace(',', '.')) : row[key];
-                flatData.push({ rubrique, date: new Date(year, month, 1), value });
+                flatData.push({ indicateur, date: new Date(year, month, 1), value });
             }
         });
 
         let chartState = {
             level: 'year', context: {}, type: 'bar', mode: 'normal',
-            comparisonRubrique: rubriques[1], showDataLabels: false,
+            comparisonIndicateur: indicateurs[0], showDataLabels: false,
             cumulativeCompare: false
         };
         const drilldownHistory = [];
         
-        const aggregateData = (level, context = {}) => { /* ... (Identique) ... */ 
+        const aggregateData = (level, context = {}) => {
             let filtered = flatData; let categories = []; let seriesData = {};
-            rubriques.forEach(r => { seriesData[r] = []; });
+            indicateurs.forEach(r => { seriesData[r] = []; });
+            
+            const isAverageMetric = (name) => name.toLowerCase().includes('panier moyen');
+
             switch(level) {
                 case 'year':
                     categories = ['2022', '2023', '2024'];
                     categories.forEach(year => {
-                        rubriques.forEach(r => {
-                            const sum = flatData.filter(d => d.rubrique === r && d.date.getFullYear() == year).reduce((acc, item) => acc + item.value, 0);
-                            seriesData[r].push(parseFloat(sum.toFixed(2)));
+                        indicateurs.forEach(r => {
+                            const yearData = flatData.filter(d => d.indicateur === r && d.date.getFullYear() == year);
+                            let val;
+                            if (isAverageMetric(r)) {
+                                val = yearData.reduce((acc, item) => acc + item.value, 0) / (yearData.length || 1);
+                            } else {
+                                val = yearData.reduce((acc, item) => acc + item.value, 0);
+                            }
+                            seriesData[r].push(parseFloat(val.toFixed(2)));
                         });
                     });
                     break;
                 case 'semester':
-                    filtered = flatData.filter(d => d.date.getFullYear() === context.year);
-                    categories = [`Semestre 1 ${context.year}`, `Semestre 2 ${context.year}`];
-                    [...Array(2).keys()].forEach(i => {
-                        const startMonth = i * 6; const endMonth = startMonth + 5;
-                        rubriques.forEach(r => {
-                            const sum = filtered.filter(d => d.rubrique === r && d.date.getMonth() >= startMonth && d.date.getMonth() <= endMonth).reduce((acc, item) => acc + item.value, 0);
-                            seriesData[r].push(parseFloat(sum.toFixed(2)));
-                        });
-                    });
-                    break;
                 case 'quadrimester':
-                    filtered = flatData.filter(d => d.date.getFullYear() === context.year);
-                    categories = [`Quad. 1 ${context.year}`, `Quad. 2 ${context.year}`, `Quad. 3 ${context.year}`];
-                     [...Array(3).keys()].forEach(i => {
-                        const startMonth = i * 4; const endMonth = startMonth + 3;
-                        rubriques.forEach(r => {
-                            const sum = filtered.filter(d => d.rubrique === r && d.date.getMonth() >= startMonth && d.date.getMonth() <= endMonth).reduce((acc, item) => acc + item.value, 0);
-                            seriesData[r].push(parseFloat(sum.toFixed(2)));
-                        });
-                    });
-                    break;
                 case 'trimester':
                     filtered = flatData.filter(d => d.date.getFullYear() === context.year);
-                    categories = [`Trim. 1 ${context.year}`, `Trim. 2 ${context.year}`, `Trim. 3 ${context.year}`, `Trim. 4 ${context.year}`];
-                     [...Array(4).keys()].forEach(i => {
-                        const startMonth = i * 3; const endMonth = startMonth + 2;
-                        rubriques.forEach(r => {
-                            const sum = filtered.filter(d => d.rubrique === r && d.date.getMonth() >= startMonth && d.date.getMonth() <= endMonth).reduce((acc, item) => acc + item.value, 0);
-                            seriesData[r].push(parseFloat(sum.toFixed(2)));
+                    let periods, periodNames;
+                    if (level === 'semester') {
+                        periods = [...Array(2).keys()].map(i => ({ start: i * 6, end: i * 6 + 5 }));
+                        periodNames = [`Semestre 1 ${context.year}`, `Semestre 2 ${context.year}`];
+                    } else if (level === 'quadrimester') {
+                        periods = [...Array(3).keys()].map(i => ({ start: i * 4, end: i * 4 + 3 }));
+                        periodNames = [`Quad. 1 ${context.year}`, `Quad. 2 ${context.year}`, `Quad. 3 ${context.year}`];
+                    } else { // trimester
+                        periods = [...Array(4).keys()].map(i => ({ start: i * 3, end: i * 3 + 2 }));
+                        periodNames = [`Trim. 1 ${context.year}`, `Trim. 2 ${context.year}`, `Trim. 3 ${context.year}`, `Trim. 4 ${context.year}`];
+                    }
+                    categories = periodNames;
+                    periods.forEach(p => {
+                        indicateurs.forEach(r => {
+                            const periodData = filtered.filter(d => d.indicateur === r && d.date.getMonth() >= p.start && d.date.getMonth() <= p.end);
+                            let val;
+                            if (isAverageMetric(r)) {
+                                val = periodData.reduce((acc, item) => acc + item.value, 0) / (periodData.length || 1);
+                            } else {
+                                val = periodData.reduce((acc, item) => acc + item.value, 0);
+                            }
+                            seriesData[r].push(parseFloat(val.toFixed(2)));
                         });
                     });
                     break;
@@ -229,20 +235,22 @@
                     filtered = flatData.filter(d => d.date.getFullYear() === context.year);
                     categories = monthNames.map(m => `${m} ${context.year}`);
                     categories.forEach((cat, i) => {
-                         rubriques.forEach(r => {
-                            const monthData = filtered.find(d => d.rubrique === r && d.date.getMonth() === i);
+                         indicateurs.forEach(r => {
+                            const monthData = filtered.find(d => d.indicateur === r && d.date.getMonth() === i);
                             seriesData[r].push(monthData ? parseFloat(monthData.value.toFixed(2)) : 0);
                         });
                     });
                     break;
             }
-            const series = Object.keys(seriesData).map(rubrique => ({ name: rubrique, data: seriesData[rubrique] }));
+            const series = Object.keys(seriesData).map(indicateur => ({ name: indicateur, data: seriesData[indicateur] }));
             return { series, categories };
         };
-        const getComparisonData = (level, rubrique) => { /* ... (Identique) ... */ 
-            const dataForRubrique = flatData.filter(d => d.rubrique === rubrique);
+        
+        const getComparisonData = (level, indicateur) => {
+            const dataForIndicateur = flatData.filter(d => d.indicateur === indicateur);
             let categories = [];
             let periods = [];
+            const isAverageMetric = indicateur.toLowerCase().includes('panier moyen');
 
             switch (level) {
                 case 'semester':
@@ -265,25 +273,31 @@
 
             const series = years.map(year => {
                 const yearData = periods.map(p => {
-                    const sum = dataForRubrique
-                        .filter(d => d.date.getFullYear() === year && d.date.getMonth() >= p.s && d.date.getMonth() <= p.e)
-                        .reduce((acc, item) => acc + item.value, 0);
-                    return parseFloat(sum.toFixed(2));
+                    const periodData = dataForIndicateur.filter(d => d.date.getFullYear() === year && d.date.getMonth() >= p.s && d.date.getMonth() <= p.e);
+                    let val;
+                    if (isAverageMetric) {
+                        val = periodData.reduce((acc, item) => acc + item.value, 0) / (periodData.length || 1);
+                    } else {
+                        val = periodData.reduce((acc, item) => acc + item.value, 0);
+                    }
+                    return parseFloat(val.toFixed(2));
                 });
                 return { name: String(year), data: yearData };
             });
 
             return { series, categories };
         };
-        const calculateCumulative = (series) => { /* ... (Identique) ... */ 
+        
+        const calculateCumulative = (series) => {
             return series.map(s => {
+                if (s.name.toLowerCase().includes('panier moyen')) return s; // Ne pas cumuler le panier moyen
                 let sum = 0;
                 const cumulativeData = s.data.map(val => { sum += val; return parseFloat(sum.toFixed(2)); });
                 return { ...s, data: cumulativeData };
             });
         };
 
-        const renderBreadcrumbs = () => { /* ... (Identique) ... */ 
+        const renderBreadcrumbs = () => {
             const nav = document.getElementById('breadcrumb-nav');
             nav.innerHTML = '';
             if (chartState.level === 'year' || chartState.mode !== 'normal') return;
@@ -327,18 +341,19 @@
         };
 
         const renderChart = () => {
-            const { level, context, type, mode, comparisonRubrique, showDataLabels, cumulativeCompare } = chartState;
-            let data, title, dynamicColors, dynamicDashArray;
+            const { level, context, type, mode, comparisonIndicateur, showDataLabels, cumulativeCompare } = chartState;
+            let data, title, dynamicColors, dynamicDashArray, yAxisConfig;
             
             let allowDrilldown = level !== 'month';
 
             switch (mode) {
                 case 'comparison':
-                    data = getComparisonData(level, comparisonRubrique);
+                    data = getComparisonData(level, comparisonIndicateur);
                     const levelName = { year: 'Mensuelle', semester: 'Semestrielle', quadrimester: 'Quadrimestrielle', trimester: 'Trimestrielle', month: 'Mensuelle' }[level];
-                    title = `Comparaison ${levelName} - ${comparisonRubrique}`;
+                    title = `Comparaison ${levelName} - ${comparisonIndicateur}`;
                     dynamicColors = defaultColors;
                     dynamicDashArray = [0];
+                    yAxisConfig = [{ title: { text: `Valeur (${getUnit(comparisonIndicateur)})` } }];
                     break;
                 case 'cumulative':
                     const currentYearData = aggregateData(level, context);
@@ -354,15 +369,15 @@
                         
                         data = {
                             series: [...cumulativeCurrent, ...cumulativePrev],
-                            categories: currentYearData.categories.map(c => c.split(' ')[0] + ' ' + c.split(' ')[1])
+                            categories: currentYearData.categories.map(c => c.split(' ').slice(0, -1).join(' '))
                         };
                         title = `Cumulatif Comparé - ${context.year} vs ${prevContext.year}`;
 
                         dynamicColors = [];
                         dynamicDashArray = [];
                         data.series.forEach(s => {
-                            const baseRubrique = rubriques.find(r => s.name.includes(r));
-                            dynamicColors.push(baseColors[baseRubrique] || '#808080');
+                            const baseIndicateur = indicateurs.find(r => s.name.includes(r));
+                            dynamicColors.push(baseColors[baseIndicateur] || '#808080');
                             dynamicDashArray.push(s.name.includes(String(prevContext.year)) ? 5 : 0);
                         });
 
@@ -371,9 +386,22 @@
                             series: calculateCumulative(currentYearData.series),
                             categories: currentYearData.categories
                         };
-                        // MODIFICATION : Logique de titre robuste pour éviter "undefined"
                         const yearLabel = context.year || 'Années';
                         title = `Vue Cumulée - ${level === 'year' ? 'Années' : yearLabel}`;
+                    }
+                    // For cumulative, always use multi-axis if not comparing years
+                    if (!cumulativeCompare) {
+                        yAxisConfig = indicateurs.map((indic, index) => ({
+                            seriesName: indic,
+                            opposite: index === 1, // Mettre le 2ème axe à droite
+                            axisTicks: { show: true },
+                            axisBorder: { show: true, color: baseColors[indic] },
+                            labels: { style: { colors: baseColors[indic] } },
+                            title: { text: indic, style: { color: baseColors[indic] } }
+                        }));
+                    } else {
+                        // Simplified axis for comparison
+                        yAxisConfig = [{ title: { text: 'Valeur Cumulée' } }];
                     }
                     break;
                 default: // 'normal'
@@ -385,6 +413,15 @@
                     }[level];
                     dynamicColors = Object.values(baseColors);
                     dynamicDashArray = [0];
+                    // --- NOUVEAU : Configuration multi-axes ---
+                    yAxisConfig = indicateurs.map((indic, index) => ({
+                        seriesName: indic,
+                        opposite: index === 1, // Mettre le 2ème axe (Panier Moyen) à droite
+                        axisTicks: { show: true },
+                        axisBorder: { show: true, color: baseColors[indic] },
+                        labels: { style: { colors: baseColors[indic] }, formatter: (val) => val.toLocaleString('fr-FR', {maximumFractionDigits: 0}) },
+                        title: { text: indic, style: { color: baseColors[indic] } }
+                    }));
                     break;
             }
 
@@ -392,8 +429,9 @@
                 chart: { type: type, events: { dataPointSelection: allowDrilldown ? handleDataPointSelection : undefined } },
                 series: data.series,
                 xaxis: { categories: data.categories },
+                yaxis: yAxisConfig,
                 title: { text: title },
-                colors: dynamicColors,
+                colors: dynamicColors || Object.values(baseColors),
                 plotOptions: { bar: { columnWidth: '70%', grouped: true } },
                 stroke: {
                     curve: 'smooth', width: type === 'line' ? 3 : 2,
@@ -420,7 +458,7 @@
             document.querySelectorAll('#view-toggle button').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`view-${type}-btn`).classList.add('active');
 
-            document.getElementById('rubrique-selector').style.display = mode === 'comparison' ? 'block' : 'none';
+            document.getElementById('indicateur-selector').style.display = mode === 'comparison' ? 'block' : 'none';
             
             const compareToggle = document.getElementById('compare-year-toggle');
             compareToggle.style.display = (mode === 'cumulative' && level !== 'year') ? 'block' : 'none';
@@ -435,7 +473,6 @@
             drillUpBtn.disabled = (currentIndex <= 0);
             
             const atBottom = currentIndex >= hierarchy.length - 1;
-            // MODIFICATION : La condition pour bloquer le bouton "+" est maintenant plus intelligente
             const needsContext = (mode === 'normal' || mode === 'cumulative');
             const stuckAtTop = (level === 'year' && !context.year && needsContext);
             
@@ -450,7 +487,6 @@
             const nextLevel = hierarchy[currentLevelIndex + 1];
             let newContext = { ...chartState.context };
             
-            // MODIFICATION : On définit le contexte de l'année même en mode Cumulé
             if(chartState.level === 'year' && (chartState.mode === 'normal' || chartState.mode === 'cumulative')) {
                 newContext.year = parseInt(chart.w.globals.labels[dataPointIndex]);
             }
@@ -509,14 +545,14 @@
             });
         });
         
-        const rubriqueSelector = document.getElementById('rubrique-selector');
-        rubriques.forEach(r => {
+        const indicateurSelector = document.getElementById('indicateur-selector');
+        indicateurs.forEach(r => {
             const option = document.createElement('option');
-            option.value = r; option.textContent = r; rubriqueSelector.appendChild(option);
+            option.value = r; option.textContent = r; indicateurSelector.appendChild(option);
         });
-        rubriqueSelector.value = chartState.comparisonRubrique;
-        rubriqueSelector.addEventListener('change', (e) => {
-            chartState.comparisonRubrique = e.target.value; renderChart();
+        indicateurSelector.value = chartState.comparisonIndicateur;
+        indicateurSelector.addEventListener('change', (e) => {
+            chartState.comparisonIndicateur = e.target.value; renderChart();
         });
 
         document.getElementById('toggle-labels-btn').addEventListener('click', () => {
@@ -529,19 +565,23 @@
             renderChart();
         });
 
-        const getUnit = (rubrique) => rubrique.match(/\(([^)]+)\)/)[1] || '';
+        const getUnit = (indicateur) => (indicateur.match(/\(([^)]+)\)/) || ["", ""])[1];
+        
         const chart = new ApexCharts(document.querySelector("#chart"), {
             chart: { type: 'bar', height: 500, toolbar: { show: true, tools: { download: true, selection: false, zoom: false, zoomin: false, zoomout: false, pan: false, reset: false } } },
             series: [],
-            plotOptions: { bar: { columnWidth: '70%', grouped: true } },
+            plotOptions: { bar: { columnWidth: '70%', dataLabels: { position: 'top' } } },
             dataLabels: { enabled: false },
-            stroke: { show: true, width: 2, colors: ['transparent'] },
-            yaxis: { title: { text: 'Consommation' } },
-            fill: { opacity: 1 },
-            tooltip: { y: { formatter: (val, { series, seriesIndex }) => `${val.toLocaleString('fr-FR', {maximumFractionDigits: 2})} ${getUnit(series[seriesIndex].name)}` } },
+            stroke: { show: true, width: [0, 3, 3], curve: 'smooth' }, // Barres pour le 1er, courbes pour les autres
+            fill: { opacity: [0.85, 0.95, 0.95], },
+            tooltip: { 
+                y: { formatter: (val, { series, seriesIndex, w }) => `${val.toLocaleString('fr-FR', {maximumFractionDigits: 2})} ${getUnit(w.globals.seriesNames[seriesIndex])}` },
+                shared: true,
+                intersect: false,
+            },
             title: { text: ' ', align: 'center', style: { fontSize: '20px', color: '#263238' } },
             noData: { text: 'Chargement...' },
-            colors: defaultColors,
+            colors: Object.values(baseColors),
         });
         chart.render();
         renderChart();
